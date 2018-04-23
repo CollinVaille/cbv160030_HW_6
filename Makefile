@@ -4,7 +4,7 @@
 #Since there's only one .cc file for the project, it's just responsible for the object file and executable corresponding to that source file.
 
 CXX = g++
-CXXFLAGS = -Wall -g 
+CXXFLAGS = -Wall -g -std=c++11 #Need c++11 for uint32_t and uint64_t
 CPPFLAGS = -I/scratch/perkins/include
 LDFLAGS = -L/scratch/perkins/lib
 LDLIBS = -lcdk -lcurses
