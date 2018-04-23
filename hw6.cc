@@ -2,12 +2,13 @@
 //Collin Vaille (cbv160030), CS 3377 Section 501, Homework 6
 
 //This is based on the CDK example in the class notes.
-//This is the main and only source file for the program. It firsts read in...
+//This is the main source file for the program. It firsts read in...
 //object data from a binary file and then displays that data in a visual...
 //matrix. Finally, it waits for user input and exits on any button.
 
-//I could split this into multiple files but the project is short enough to...
-//where it's still readable to put it in one place so I just did that.
+//Uses helper methods defined in hw6Helper.cc and declared in hw6.h.
+
+#include "hw6.h" //Holds function headers for helper methods call below
 
 #include <string> //For char array manipulation to set text of display matrix
 #include <cstdint> //For uint32_t and uint64_t
@@ -22,12 +23,6 @@
 #define MATRIX_NAME_STRING "Binary File Contents"
 
 using namespace std;
-
-//Used to create char arrays displayed in cdk matrix
-//Defined at the very bottom of the file
-void combineCharArrays(char*, int, char*, int, char*);
-
-void setCharArray(char*, string, int, bool);
 
 //Definition of the header object
 class BinaryFileHeader
@@ -53,7 +48,7 @@ int main()
 {
   //---------------------BINARY FILE INPUT PART---------------------------
 
-  //First read in the header record...
+  //First read in the header object...
 
   //Create header object
   BinaryFileHeader *header = new BinaryFileHeader();
@@ -63,6 +58,18 @@ int main()
 
   //Initialize header to object returned by binary input stream read
   binaryInput.read((char *) header, sizeof(BinaryFileHeader));
+
+  //Next read in the record objects...
+  
+  //Create space to store the records
+  BinaryFileRecord *records[header->numRecords];
+
+  //Each iteration reads one record in from the stream to the record array
+  for(uint32_t x = 0; x < header->numRecords; x++)
+  {
+    records[x] = new BinaryFileRecord();
+    binaryInput.read((char *) records[x], sizeof(BinaryFileRecord));
+  }
 
   //Close stream
   binaryInput.close();
@@ -129,7 +136,19 @@ int main()
   char numRecordsArray[28]; //13 for label + 15 for number = 28
   setCharArray(numRecordsArray, "Num Records: ", header->numRecords, false);
   setCDKMatrixCell(myMatrix, 1, 3, numRecordsArray);
-  
+ 
+  //Now for the records
+  char stringLengthArray[23]; //8 for label + 15 for number = 23
+  for(int x = 0; x < (int)(header->numRecords); x++) //1 iteration per object
+  {
+    //Display string length in (object's row #, 1)
+    setCharArray(stringLengthArray, "strlen: ", records[x]->strLength, false);
+    setCDKMatrixCell(myMatrix, x + 2, 1, stringLengthArray);
+    
+    //Display string in (object's row #, 2)
+    setCDKMatrixCell(myMatrix, x + 2, 2, records[x]->stringBuffer);
+  }
+
   //Refresh display to show changes
   drawCDKMatrix(myMatrix, true);
 
@@ -141,60 +160,11 @@ int main()
   endCDK();
   
   //Clean up the pointers used to hold the header and record objects
+  
+  //Delete records
+  for(uint32_t x = 0; x < header->numRecords; x++)
+    delete records[x];
+
+  //Delete header
   delete header;
 }
-
-//-------------------------HELPER METHODS-------------------------------
-
-//Sets toSet to be the label + number (and number is in hex if specified)
-void setCharArray(char* toSet, string label, int number, bool hexNumber)
-{
-  //Convert int number to char[] numberHolder
-  char numberHolder[15];
-  if(hexNumber)
-    sprintf(numberHolder, "%X", number);
-  else
-    sprintf(numberHolder, "%u", number);
-
-  //Convert string label to char* labelHolder
-  char* labelHolder = new char[label.length() + 1];
-  strcpy(labelHolder, label.c_str());
-  
-  //Label + number = toSet (finally sets toSet)
-  combineCharArrays(labelHolder, label.length() + 1, numberHolder, 15, toSet);
-
-  //Delete temporary pointers used in method
-  delete labelHolder;
-}
-
-//returned array = array1 + array2
-//lengthX = length of arrayX (excluding null character at end)
-void combineCharArrays(char* array1, int length1, char* array2, int length2, char* returnArray)
-{
-  //Index of next empty space in returnArray
-  int nextIndex = 0;
-
-  //Copy over first array
-  for(int x = 0; x < length1; x++)
-  {
-    if(array1[x] == '\0')
-      break;
-    else
-      returnArray[nextIndex++] = array1[x];
-  }
-
-  //Copy over second array
-  for(int x = 0; x < length2; x++)
-  {
-    if(array2[x] == '\0')
-      break;
-    else
-      returnArray[nextIndex++] = array2[x];
-  }
-
-  //Add null-termination
-  returnArray[nextIndex] = '\0';
-
-  //That should be it
-}
-
